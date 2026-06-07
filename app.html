@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cuentas Congregación Araucarias</title>
+  <meta name="theme-color" content="#0b1020" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <div class="scrim" id="scrim"></div>
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="logo">A</div>
+        <div>
+          <h1 style="font-size:1.05rem">Araucarias</h1>
+          <div class="small muted">Cuentas</div>
+        </div>
+      </div>
+      <nav class="nav" id="nav">
+        <button data-view="resumen" class="active"><span class="ic">📊</span> Resumen</button>
+        <button data-view="donaciones"><span class="ic">💛</span> Donaciones</button>
+        <button data-view="depositos"><span class="ic">🏦</span> Depósitos</button>
+        <button data-view="gastos"><span class="ic">🧾</span> Gastos</button>
+        <button data-view="caja"><span class="ic">🪙</span> Caja chica</button>
+        <button data-view="traspaso"><span class="ic">📤</span> Traspaso (TO-62)</button>
+        <button data-view="formularios"><span class="ic">📄</span> Formularios PDF</button>
+        <button data-view="historial"><span class="ic">🗂️</span> Historial</button>
+      </nav>
+      <div style="border-top:1px solid var(--border); padding-top:14px; margin-top:10px;">
+        <div class="small muted" id="userEmail" style="margin-bottom:10px; word-break:break-all;"></div>
+        <button class="btn btn-sm btn-block" id="logoutBtn">Cerrar sesión</button>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <div class="main">
+      <div class="topbar">
+        <button class="menu-toggle" id="menuToggle">☰</button>
+        <div>
+          <div class="small muted">Mes contable</div>
+          <strong id="mesTitulo" style="font-size:1.05rem">—</strong>
+        </div>
+        <select class="month-select" id="mesSelect" title="Seleccionar mes"></select>
+        <button class="btn btn-sm" id="nuevoMesBtn">+ Nuevo mes</button>
+      </div>
+
+      <div class="content">
+        <!-- ===== RESUMEN ===== -->
+        <section class="view active" id="view-resumen">
+          <div class="section-head"><h2>Resumen del mes</h2></div>
+          <div id="validaciones"></div>
+          <div class="grid cols-4" id="statCards" style="margin-bottom:18px"></div>
+          <div class="grid cols-2">
+            <div class="card">
+              <h3>Informe S-30 (cálculo automático)</h3>
+              <div class="table-wrap" style="border:none">
+                <table id="s30Tabla"><tbody></tbody></table>
+              </div>
+            </div>
+            <div class="card">
+              <h3>Saldos de la Hoja de Cuentas (S-26)</h3>
+              <div class="table-wrap" style="border:none">
+                <table id="s26Tabla"><tbody></tbody></table>
+              </div>
+              <hr class="sep" />
+              <h3>Anuncio mensual</h3>
+              <p class="small muted" id="anuncioTexto" style="line-height:1.6"></p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== DONACIONES ===== -->
+        <section class="view" id="view-donaciones">
+          <div class="section-head">
+            <h2>Donaciones</h2>
+            <button class="btn btn-primary btn-sm" data-add="donacion">+ Registrar donación</button>
+          </div>
+          <div id="donacionesList"></div>
+        </section>
+
+        <!-- ===== DEPÓSITOS ===== -->
+        <section class="view" id="view-depositos">
+          <div class="section-head">
+            <h2>Depósitos en cuenta principal</h2>
+            <button class="btn btn-sm" id="depAutoBtn" title="Crear un depósito por el total de donaciones aún no depositadas">⚡ Depósito automático</button>
+            <button class="btn btn-primary btn-sm" data-add="deposito">+ Registrar depósito</button>
+          </div>
+          <p class="small muted" style="margin-top:-6px">Mueve las donaciones recogidas a la cuenta principal. Al cerrar el mes, el saldo de “Recibido” debe ser 0.</p>
+          <div id="depositosList"></div>
+        </section>
+
+        <!-- ===== GASTOS ===== -->
+        <section class="view" id="view-gastos">
+          <div class="section-head">
+            <h2>Gastos de la congregación</h2>
+            <button class="btn btn-primary btn-sm" data-add="gasto">+ Registrar gasto</button>
+          </div>
+          <div id="gastosList"></div>
+        </section>
+
+        <!-- ===== CAJA CHICA ===== -->
+        <section class="view" id="view-caja">
+          <div class="section-head">
+            <h2>Caja chica / Cuenta secundaria</h2>
+            <button class="btn btn-primary btn-sm" data-add="cajachica">+ Movimiento</button>
+          </div>
+          <div id="cajaList"></div>
+        </section>
+
+        <!-- ===== TRASPASO TO-62 ===== -->
+        <section class="view" id="view-traspaso">
+          <div class="section-head"><h2>Traspaso de fondos a la sucursal (TO-62)</h2></div>
+          <div class="card" style="max-width:680px">
+            <form id="to62Form">
+              <label>Método de pago o traspaso</label>
+              <select id="t_metodo">
+                <option value="">— Seleccionar —</option>
+                <option value="automatica">Transferencia automática</option>
+                <option value="electronica">Transferencia electrónica o depósito bancario</option>
+                <option value="cheque">Cheque o giro bancario</option>
+              </select>
+
+              <div class="inline-2">
+                <div>
+                  <label>Obra mundial (cajas) — automático</label>
+                  <input id="t_omCajas" type="text" disabled />
+                  <div class="field-help">Suma de donaciones OM del mes.</div>
+                </div>
+                <div>
+                  <label>Obra mundial (resolución)</label>
+                  <input id="t_resolucion" type="number" step="0.01" min="0" placeholder="0.00" />
+                </div>
+              </div>
+
+              <div class="inline-2">
+                <div>
+                  <label>Pago por cargos a la cuenta</label>
+                  <input id="t_cargos" type="number" step="0.01" min="0" placeholder="0.00" />
+                </div>
+                <div>
+                  <label>Envío de fondos para depositar en sucursal</label>
+                  <input id="t_fondosDepositar" type="number" step="0.01" min="0" placeholder="0.00" />
+                </div>
+              </div>
+
+              <hr class="sep" />
+              <div class="inline-2">
+                <div>
+                  <label>Fecha de la transacción</label>
+                  <input id="t_fecha" type="date" />
+                </div>
+                <div>
+                  <label>Número de referencia</label>
+                  <input id="t_referencia" type="text" placeholder="Ej. transferencia / giro" />
+                </div>
+              </div>
+              <div class="inline-2">
+                <div>
+                  <label>Número(s) de confirmación (JW Hub)</label>
+                  <input id="t_confirmacion" type="text" placeholder="conf1 / conf2" />
+                </div>
+                <div>
+                  <label>Solicitud de reembolso (si aplica)</label>
+                  <input id="t_reembolso" type="number" step="0.01" min="0" placeholder="0.00" />
+                </div>
+              </div>
+              <div class="inline-2">
+                <div>
+                  <label>Persona que lo llena</label>
+                  <input id="t_personaLlena" type="text" />
+                </div>
+                <div>
+                  <label>Persona que lo autoriza</label>
+                  <input id="t_personaAutoriza" type="text" />
+                </div>
+              </div>
+
+              <hr class="sep" />
+              <div class="grid cols-2">
+                <div class="stat"><div class="label">Total de donaciones y pagos</div><div class="value" id="t_totalDon">$0.00</div></div>
+                <div class="stat"><div class="label">Total de fondos enviados</div><div class="value pos" id="t_totalFondos">$0.00</div></div>
+              </div>
+              <button type="submit" class="btn btn-accent btn-block" style="margin-top:16px">Guardar traspaso</button>
+            </form>
+          </div>
+        </section>
+
+        <!-- ===== FORMULARIOS ===== -->
+        <section class="view" id="view-formularios">
+          <div class="section-head"><h2>Generar formularios PDF</h2></div>
+          <p class="muted small">Se rellenan automáticamente con los datos del mes seleccionado, listos para imprimir o enviar.</p>
+          <div class="grid cols-3" style="margin-top:14px">
+            <div class="card">
+              <h3>S-26</h3>
+              <p class="small muted">Hoja de Cuentas — registro detallado y resumen mensual.</p>
+              <button class="btn btn-primary btn-block" id="pdfS26">⬇ Descargar S-26</button>
+            </div>
+            <div class="card">
+              <h3>S-30</h3>
+              <p class="small muted">Informe Mensual de las Cuentas + anuncio para la congregación.</p>
+              <button class="btn btn-primary btn-block" id="pdfS30">⬇ Descargar S-30</button>
+            </div>
+            <div class="card">
+              <h3>TO-62</h3>
+              <p class="small muted">Registro de Traspaso de Fondos a la sucursal.</p>
+              <button class="btn btn-primary btn-block" id="pdfTO62">⬇ Descargar TO-62</button>
+            </div>
+          </div>
+          <div class="card" style="margin-top:18px">
+            <h3>Configuración del mes</h3>
+            <div class="inline-2">
+              <div>
+                <label>Saldo anterior — Recibido</label>
+                <input id="cfg_recibido" type="number" step="0.01" />
+              </div>
+              <div>
+                <label>Saldo anterior — Cuenta principal</label>
+                <input id="cfg_principal" type="number" step="0.01" />
+              </div>
+            </div>
+            <div class="inline-2">
+              <div>
+                <label>Saldo anterior — Cuenta secundaria</label>
+                <input id="cfg_secundaria" type="number" step="0.01" />
+              </div>
+              <div style="display:flex; align-items:flex-end">
+                <button class="btn btn-block" id="cfgGuardar">Guardar configuración</button>
+              </div>
+            </div>
+            <p class="field-help">Los saldos anteriores se arrastran automáticamente al crear el mes siguiente desde el historial.</p>
+          </div>
+        </section>
+
+        <!-- ===== HISTORIAL ===== -->
+        <section class="view" id="view-historial">
+          <div class="section-head"><h2>Historial de meses</h2></div>
+          <div id="historialList"></div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal genérico -->
+  <div class="modal-overlay" id="modal">
+    <div class="modal">
+      <div class="modal-head"><h3 id="modalTitle">Registrar</h3><button class="close" id="modalClose">×</button></div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-foot">
+        <button class="btn" id="modalCancel">Cancelar</button>
+        <button class="btn btn-primary" id="modalSave">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
