@@ -411,15 +411,30 @@ function openTxModal(tipo, tx = null) {
   let body = "";
   const fecha = tx?.fecha || hoy();
   if (tipo === "donacion") {
-    body = `
-      <label>Fecha</label><input type="date" id="m_fecha" value="${fecha}" />
-      <label>Tipo de donación</label>
-      <select id="m_donTipo">
-        <option value="C" ${tx?.donTipo === "C" ? "selected" : ""}>Congregación (C)</option>
-        <option value="OM" ${tx?.donTipo === "OM" ? "selected" : ""}>Obra Mundial (OM)</option>
-      </select>
-      <label>Monto (MXN)</label><input type="number" step="0.01" min="0" id="m_monto" value="${tx?.monto ?? ""}" />
-      <label>Descripción (opcional)</label><input type="text" id="m_desc" value="${tx?.descripcion ?? ""}" />`;
+    if (editar) {
+      // Al editar, mostramos el tipo existente y un solo monto
+      const tipoLabel = tx.donTipo === "OM" ? "Obra Mundial (OM)" : "Congregación (C)";
+      body = `
+        <label>Fecha</label><input type="date" id="m_fecha" value="${fecha}" />
+        <label>Tipo</label><input type="text" value="${tipoLabel}" disabled />
+        <label>Monto (MXN)</label><input type="number" step="0.01" min="0" id="m_monto" value="${tx?.monto ?? ""}" />
+        <label>Descripción (opcional)</label><input type="text" id="m_desc" value="${tx?.descripcion ?? ""}" />`;
+    } else {
+      // Al registrar, mostramos los dos campos a la vez
+      body = `
+        <label>Fecha</label><input type="date" id="m_fecha" value="${fecha}" />
+        <div class="inline-2">
+          <div>
+            <label>💛 Congregación — C (MXN)</label>
+            <input type="number" step="0.01" min="0" id="m_monto_c" placeholder="0.00" />
+          </div>
+          <div>
+            <label>🌍 Obra Mundial — OM (MXN)</label>
+            <input type="number" step="0.01" min="0" id="m_monto_om" placeholder="0.00" />
+          </div>
+        </div>
+        <label>Descripción (opcional)</label><input type="text" id="m_desc" value="" />`;
+    }
   } else if (tipo === "deposito") {
     body = `
       <label>Fecha</label><input type="date" id="m_fecha" value="${fecha}" />
@@ -444,11 +459,27 @@ function openTxModal(tipo, tx = null) {
   }
 
   openModal(`${editar ? "Editar" : "Registrar"} ${titulos[tipo].toLowerCase()}`, body, async () => {
+    // --- Donación nueva: dos campos separados ---
+    if (tipo === "donacion" && !editar) {
+      const montoC  = round2(parseFloat($("#m_monto_c").value)  || 0);
+      const montoOM = round2(parseFloat($("#m_monto_om").value) || 0);
+      if (montoC <= 0 && montoOM <= 0) throw new Error("Ingresa al menos un monto (C u OM).");
+      const fecha = $("#m_fecha").value;
+      const desc  = $("#m_desc").value.trim();
+      const ops = [];
+      if (montoC  > 0) ops.push(DB.agregarTransaccion(state.mesId, { tipo: "donacion", fecha, monto: montoC,  donTipo: "C",  descripcion: desc }));
+      if (montoOM > 0) ops.push(DB.agregarTransaccion(state.mesId, { tipo: "donacion", fecha, monto: montoOM, donTipo: "OM", descripcion: desc }));
+      await Promise.all(ops);
+      toast(`Donación${ops.length > 1 ? "es" : ""} registrada${ops.length > 1 ? "s" : ""}`, "ok");
+      return;
+    }
+
+    // --- Resto de tipos (y edición de donación) ---
     const monto = round2($("#m_monto").value);
     if (!(monto > 0)) throw new Error("Ingresa un monto válido.");
     const base = { tipo, fecha: $("#m_fecha").value, monto };
     if (tipo === "donacion") {
-      base.donTipo = $("#m_donTipo").value;
+      base.donTipo = tx.donTipo; // conserva el tipo original
       base.descripcion = $("#m_desc").value.trim();
     } else if (tipo === "deposito") {
       base.descripcion = $("#m_desc").value.trim();
