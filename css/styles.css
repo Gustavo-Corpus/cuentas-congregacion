@@ -245,6 +245,31 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
 
 /* mobile menu toggle */
 .menu-toggle { display: none; background: none; border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 7px 10px; cursor: pointer; }
+/* ── Mes selector invisible ── */  
+.mes-selector-wrap { position: relative; cursor: pointer; }  
+.mes-display {  
+  position: relative;  
+  display: inline-flex;  
+  align-items: center;  
+  gap: 5px;  
+}  
+.mes-arrow {  
+  color: var(--text-muted);  
+  font-size: .9rem;  
+  pointer-events: none;  
+}  
+.month-select-overlay {  
+  position: absolute;  
+  inset: 0;  
+  width: 100%;  
+  height: 100%;  
+  opacity: 0;  
+  cursor: pointer;  
+  font-size: 1rem; /* importante para que el área clickeable sea correcta */  
+}  
+  
+/* Ocultar el topbar .month-select anterior si quedó alguna referencia */  
+.topbar .month-select { display: none; }
 
 @media (max-width: 980px) { .cols-4 { grid-template-columns: repeat(2,1fr);} .cols-3{grid-template-columns:1fr 1fr;} }
 @media (max-width: 760px) {
@@ -257,4 +282,61 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
   .topbar { padding: 12px 14px; }
   .scrim { position: fixed; inset:0; background: rgba(0,0,0,.5); z-index: 55; display:none; }
   .scrim.open { display:block; }
+
+  /* ── Topbar: mes y botón compactos ── */
+  .topbar { gap: 10px; flex-wrap: wrap; }
+  .topbar .month-select { min-width: 0; flex: 1; margin-left: 0; }
+  #nuevoMesBtn { flex-shrink: 0; }
+
+  /* ── Tablas responsivas: ocultar columnas secundarias ── */
+  .table-wrap { overflow-x: hidden; border-radius: var(--radius); }
+
+  /* Donaciones: ocultar columna "Descripción" en móvil */
+  #donacionesList table thead th:nth-child(3),
+  #donacionesList table tbody td:nth-child(3) { display: none; }
+
+  /* Gastos: ocultar columna "Notas / etiquetas" en móvil */
+  #gastosList table thead th:nth-child(3),
+  #gastosList table tbody td:nth-child(3) { display: none; }
+
+  /* Depósitos: truncar descripción */
+  #depositosList table tbody td:nth-child(2) {
+    max-width: 120px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Caja chica: ocultar descripción */
+  #cajaList table thead th:nth-child(3),
+  #cajaList table tbody td:nth-child(3) { display: none; }
+
+  /* S-26: compactar encabezados (Ant./Entr./Sal. → A/E/S) */
+  #s26Tabla th:nth-child(2),  
+  #s26Tabla td:nth-child(2),  
+  #s26Tabla th:nth-child(3),  
+  #s26Tabla td:nth-child(3),  
+  #s26Tabla th:nth-child(4),  
+  #s26Tabla td:nth-child(4) { display: none; }  
+  
+  #s26Tabla { table-layout: fixed; width: 100%; }  
+  #s26Tabla th:first-child,  
+  #s26Tabla td:first-child { width: 65%; }
+  
+  #s26Tabla tr:last-child td:nth-child(2) {   
+    display: table-cell !important;  
+    width: 35% !important;  
+    text-align: right;  
+  }
+  
+  /* Por si el .table-wrap del resumen tiene overflow-x activo */  
+  #view-resumen .table-wrap { overflow-x: hidden; }  
+  #view-resumen .card { overflow: hidden; }
+
+  /* Celdas numéricas más compactas */
+  .num { padding-left: 6px !important; }
+  thead th, tbody td { padding: 9px 8px; font-size: .82rem; }
+
+  /* Stat cards: valor más compacto */
+  .stat .value { font-size: 1.25rem; }
 }

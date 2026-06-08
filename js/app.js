@@ -140,6 +140,7 @@ function recompute() {
   if (!state.mes) return;
   state.derived = computeMonth(state.mes, state.txs);
   renderResumen();
+  renderCharts();
   renderDonaciones();
   renderDepositos();
   renderGastos();
@@ -222,7 +223,7 @@ function renderResumen() {
       o.final
     )}</td></tr>`;
   }
-  html += `<tr><td colspan="4" style="font-weight:700">Total de fondos al final del mes</td><td class="num" style="font-weight:700;color:var(--accent)">${money(
+  html += `<tr><td colspan="1" style="font-weight:700">Total de fondos al final del mes</td><td class="num" style="font-weight:700;color:var(--accent)">${money(
     d.totalFondosFinMes
   )}</td></tr></tbody>`;
   $("#s26Tabla").innerHTML = html;
@@ -235,6 +236,120 @@ function renderResumen() {
   )}</strong>. Los gastos de la congregación ascendieron a <strong>${money(
     s.e
   )}</strong>. El saldo al final del mes es de <strong>${money(s.i)}</strong>.`;
+}
+
+/* ---- GRÁFICOS ---- */
+const chartInstances = {};
+
+function renderCharts() {
+  const s = state.derived.s30;
+
+  const chartDefaults = {
+    plugins: {
+      legend: {
+        labels: { color: "#a0aec8", font: { family: "Inter", size: 12 } }
+      },
+      tooltip: {
+        callbacks: {
+          label: (ctx) => ` ${money(ctx.parsed || ctx.raw)}`
+        }
+      }
+    }
+  };
+
+  function destroyAndCreate(id, config) {
+    if (chartInstances[id]) chartInstances[id].destroy();
+    const ctx = document.getElementById(id)?.getContext("2d");
+    if (!ctx) return;
+    chartInstances[id] = new Chart(ctx, config);
+  }
+
+  // 1. Donut — Distribución de ingresos
+  destroyAndCreate("chartIngresos", {
+    type: "doughnut",
+    data: {
+      labels: ["Congregación", "Obra Mundial"],
+      datasets: [{
+        data: [s.b, s.c],
+        backgroundColor: ["rgba(40,214,168,.75)", "rgba(180,140,255,.75)"],
+        borderColor: ["#28d6a8", "#b48cff"],
+        borderWidth: 2
+      }]
+    },
+    options: {
+      ...chartDefaults,
+      cutout: "65%",
+      plugins: {
+        ...chartDefaults.plugins,
+        tooltip: {
+          callbacks: { label: (ctx) => ` ${money(ctx.raw)}` }
+        }
+      }
+    }
+  });
+
+  // 2. Barras — Ingresos vs Desembolsos vs Superávit
+  destroyAndCreate("chartBalance", {
+    type: "bar",
+    data: {
+      labels: ["Ingresos (d)", "Desembolsos (g)", "Superávit/Déficit (h)"],
+      datasets: [{
+        data: [s.d, s.g, s.h],
+        backgroundColor: [
+          "rgba(40,214,168,.7)",
+          "rgba(79,140,255,.7)",
+          s.h >= 0 ? "rgba(40,214,168,.5)" : "rgba(255,92,122,.7)"
+        ],
+        borderColor: [
+          "#28d6a8", "#4f8cff",
+          s.h >= 0 ? "#28d6a8" : "#ff5c7a"
+        ],
+        borderWidth: 2,
+        borderRadius: 8
+      }]
+    },
+    options: {
+      ...chartDefaults,
+      plugins: {
+        ...chartDefaults.plugins,
+        legend: { display: false }
+      },
+      scales: {
+        x: { ticks: { color: "#a0aec8", font: { size: 11 } }, grid: { color: "rgba(255,255,255,.06)" } },
+        y: {
+          ticks: {
+            color: "#a0aec8",
+            callback: (v) => `$${(v / 1000).toFixed(0)}k`
+          },
+          grid: { color: "rgba(255,255,255,.06)" }
+        }
+      }
+    }
+  });
+
+  // 3. Donut — Distribución de desembolsos
+  destroyAndCreate("chartDesembolsos", {
+    type: "doughnut",
+    data: {
+      labels: ["Gastos congregación", "OM enviadas"],
+      datasets: [{
+        data: [s.e, s.f],
+        backgroundColor: ["rgba(255,180,84,.75)", "rgba(79,140,255,.75)"],
+        borderColor: ["#ffb454", "#4f8cff"],
+        borderWidth: 2
+      }]
+    },
+    options: {
+      ...chartDefaults,
+      cutout: "65%",
+      plugins: {
+        ...chartDefaults.plugins,
+        tooltip: {
+          callbacks: { label: (ctx) => ` ${money(ctx.raw)}` }
+        }
+      }
+    }
+  });
 }
 
 /* ----------------------------- listas ----------------------------- */

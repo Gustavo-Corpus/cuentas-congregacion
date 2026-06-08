@@ -41,12 +41,15 @@
     <div class="main">
       <div class="topbar">
         <button class="menu-toggle" id="menuToggle">☰</button>
-        <div>
+        <div class="mes-selector-wrap">
           <div class="small muted">Mes contable</div>
-          <strong id="mesTitulo" style="font-size:1.05rem">—</strong>
-        </div>
-        <select class="month-select" id="mesSelect" title="Seleccionar mes"></select>
-        <button class="btn btn-sm" id="nuevoMesBtn">+ Nuevo mes</button>
+          <div class="mes-display">
+           <strong id="mesTitulo" style="font-size:1.05rem">—</strong>
+           <span class="mes-arrow">▾</span>
+           <select class="month-select-overlay" id="mesSelect" title="Seleccionar mes"></select>
+          </div>
+       </div>
+       <button class="btn btn-sm" id="nuevoMesBtn" style="margin-left:auto">+ Nuevo mes</button>
       </div>
 
       <div class="content">
@@ -70,6 +73,20 @@
               <hr class="sep" />
               <h3>Anuncio mensual</h3>
               <p class="small muted" id="anuncioTexto" style="line-height:1.6"></p>
+            </div>
+          </div>
+          <div class="grid cols-3" style="margin-bottom:18px" id="chartsGrid">
+            <div class="card">
+              <h3 style="margin-bottom:14px">Distribución de ingresos</h3>
+              <canvas id="chartIngresos" height="200"></canvas>
+            </div>
+            <div class="card">
+              <h3 style="margin-bottom:14px">Ingresos vs Desembolsos</h3>
+              <canvas id="chartBalance" height="200"></canvas>
+            </div>
+            <div class="card">
+              <h3 style="margin-bottom:14px">Distribución de desembolsos</h3>
+              <canvas id="chartDesembolsos" height="200"></canvas>
             </div>
           </div>
         </section>
@@ -258,6 +275,9 @@
   </div>
 
   <div class="toast" id="toast"></div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script type="module" src="js/app.js"></script>
 
   <script type="module" src="js/app.js"></script>
 </body>
