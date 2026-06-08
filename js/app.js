@@ -363,6 +363,14 @@ function fechaCorta(iso) {
   return `${dd}/${m}/${y}`;
 }
 
+function fechaLarga(iso) {
+  if (!iso) return "";
+  const [y, m, dd] = iso.split("-");
+  const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio",
+                 "Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+  return `${parseInt(dd)} de ${meses[parseInt(m)-1]} del ${y}`;
+}
+
 function listaTabla(items, columnas, vacio) {
   if (!items.length) return tablaVacia(vacio);
   const head = columnas.map((c) => `<th class="${c.num ? "num" : ""}">${c.t}</th>`).join("");
@@ -400,23 +408,129 @@ function bindRowActions(container, tipo) {
 function renderDonaciones() {
   const items = state.txs.filter((t) => t.tipo === "donacion");
   const el = $("#donacionesList");
-  el.innerHTML = listaTabla(
-    items,
-    [
-      { t: "Fecha", render: (t) => fechaCorta(t.fecha) },
-      {
-        t: "Tipo",
-        render: (t) =>
-          t.donTipo === "OM"
-            ? '<span class="tag tag-om">Obra Mundial</span>'
-            : '<span class="tag tag-cong">Congregación</span>'
-      },
-      { t: "Descripción", render: (t) => t.descripcion || "—" },
-      { t: "Monto", num: true, render: (t) => money(t.monto) }
-    ],
-    "Sin donaciones registradas este mes."
+
+  if (!items.length) {
+    el.innerHTML = tablaVacia("Sin donaciones registradas este mes.");
+    return;
+  }
+
+  const porFecha = {};
+  for (const tx of items) {
+    if (!porFecha[tx.fecha]) porFecha[tx.fecha] = [];
+    porFecha[tx.fecha].push(tx);
+  }
+
+  const fechasOrdenadas = Object.keys(porFecha).sort();
+
+  el.innerHTML = fechasOrdenadas.map((fecha) => {
+    const txsFecha = porFecha[fecha];
+    const om = txsFecha.find((t) => t.donTipo === "OM");
+    const cong = txsFecha.find((t) => t.donTipo === "C");
+    const total = txsFecha.reduce((s, t) => s + t.monto, 0);
+
+    const omHtml = om ? `
+      <div class="don-col">
+        <div class="don-tipo tag tag-om">Obra Mundial</div>
+        <div class="don-monto">${money(om.monto)}</div>
+        ${om.descripcion ? `<div class="don-desc">${om.descripcion}</div>` : ""}
+      </div>` : "";
+
+    const congHtml = cong ? `
+      <div class="don-col">
+        <div class="don-tipo tag tag-cong">Congregación</div>
+        <div class="don-monto">${money(cong.monto)}</div>
+        ${cong.descripcion ? `<div class="don-desc">${cong.descripcion}</div>` : ""}
+      </div>` : "";
+
+    const divider = om && cong ? `<div class="don-divider"></div>` : "";
+
+    const omId = om?.id || "";
+    const congId = cong?.id || "";
+
+    return `
+      <div class="don-card">
+        <div class="don-fecha">${fechaLarga(fecha)}</div>
+        <div class="don-body">
+          ${omHtml}
+          ${divider}
+          ${congHtml}
+        </div>
+        <div class="don-total">
+          <div class="don-acciones-grupo">
+            <button class="icon-btn" data-edit-grupo="${fecha}" data-om="${omId}" data-cong="${congId}">✏️ Editar</button>
+            <button class="icon-btn del" data-del-grupo="${fecha}" data-om="${omId}" data-cong="${congId}">🗑️ Eliminar</button>
+          </div>
+          <div>
+            <span class="don-total-label">Total </span>
+            <span class="don-total-monto">${money(total)}</span>
+          </div>
+        </div>
+      </div>`;
+  }).join("");
+
+  el.querySelectorAll("[data-edit-grupo]").forEach((b) =>
+    b.addEventListener("click", () => {
+      const om = state.txs.find((t) => t.id === b.dataset.om);
+      const cong = state.txs.find((t) => t.id === b.dataset.cong);
+      openDonacionGrupoModal(b.dataset.editGrupo, om, cong);
+    })
   );
-  bindRowActions(el, "donacion");
+
+  el.querySelectorAll("[data-del-grupo]").forEach((b) =>
+    b.addEventListener("click", async () => {
+      if (confirm("¿Eliminar las donaciones de este día?")) {
+        const ids = [b.dataset.om, b.dataset.cong].filter(Boolean);
+        for (const id of ids) await DB.eliminarTransaccion(state.mesId, id);
+        toast("Donaciones eliminadas", "ok");
+      }
+    })
+  );
+}
+
+function openDonacionGrupoModal(fecha, txOM = null, txCong = null) {
+  const fechaVal = txOM?.fecha || txCong?.fecha || fecha;
+  const body = `
+    <label>Fecha</label>
+    <input type="date" id="m_fecha" value="${fechaVal}" />
+    <hr class="sep" />
+    <label>💛 Obra Mundial (MXN)</label>
+    <input type="number" step="0.01" min="0" id="m_monto_om" value="${txOM?.monto ?? ""}" placeholder="0.00" />
+    <label>Descripción OM (opcional)</label>
+    <input type="text" id="m_desc_om" value="${txOM?.descripcion ?? ""}" />
+    <hr class="sep" />
+    <label>💚 Congregación (MXN)</label>
+    <input type="number" step="0.01" min="0" id="m_monto_cong" value="${txCong?.monto ?? ""}" placeholder="0.00" />
+    <label>Descripción Congregación (opcional)</label>
+    <input type="text" id="m_desc_cong" value="${txCong?.descripcion ?? ""}" />`;
+
+  openModal("Editar donaciones", body, async () => {
+    const montoOM = round2($("#m_monto_om").value);
+    const montoCong = round2($("#m_monto_cong").value);
+    const fechaNueva = $("#m_fecha").value;
+
+    if (!(montoOM > 0) && !(montoCong > 0))
+      throw new Error("Ingresa al menos un monto válido.");
+
+    if (montoOM > 0) {
+      const data = { tipo: "donacion", fecha: fechaNueva, monto: montoOM,
+                     donTipo: "OM", descripcion: $("#m_desc_om").value.trim() };
+      if (txOM) await DB.actualizarTransaccion(state.mesId, txOM.id, data);
+      else await DB.agregarTransaccion(state.mesId, data);
+    } else if (txOM) {
+      await DB.eliminarTransaccion(state.mesId, txOM.id);
+    }
+
+    if (montoCong > 0) {
+      const data = { tipo: "donacion", fecha: fechaNueva, monto: montoCong,
+                     donTipo: "C", descripcion: $("#m_desc_cong").value.trim() };
+      if (txCong) await DB.actualizarTransaccion(state.mesId, txCong.id, data);
+      else await DB.agregarTransaccion(state.mesId, data);
+    } else if (txCong) {
+      await DB.eliminarTransaccion(state.mesId, txCong.id);
+    }
+
+    toast("Donaciones actualizadas", "ok");
+  });
 }
 
 function renderDepositos() {
@@ -515,6 +629,13 @@ function openModal(title, bodyHtml, onSave) {
 
 const hoy = () => new Date().toISOString().slice(0, 10);
 
+function fechaDefaultMes() {
+  if (!state.mesId) return hoy();
+  const [y, m] = hoy().split("-");
+  const mesActual = `${y}-${m}`;
+  return state.mesId === mesActual ? hoy() : `${state.mesId}-01`;
+}
+
 function openTxModal(tipo, tx = null) {
   const editar = !!tx;
   const titulos = {
@@ -524,7 +645,7 @@ function openTxModal(tipo, tx = null) {
     cajachica: "Movimiento de caja chica"
   };
   let body = "";
-  const fecha = tx?.fecha || hoy();
+  const fecha = tx?.fecha || fechaDefaultMes();
   if (tipo === "donacion") {
     if (editar) {
       // Al editar, mostramos el tipo existente y un solo monto
