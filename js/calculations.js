@@ -213,15 +213,26 @@ export function computeMonth(mes, txs) {
  */
 export function buildS26Rows(mes, txs, derived) {
   const rows = [];
-  const ordenadas = [...txs].sort((a, b) =>
-    (a.fecha || "").localeCompare(b.fecha || "")
-  );
+  function prioridad(t) {
+  if (t.tipo === "donacion" && t.donTipo === "OM") return 1;
+  if (t.tipo === "donacion" && t.donTipo === "C")  return 2;
+  if (t.tipo === "gasto")                          return 3;
+  if (t.tipo === "cajachica")                      return 4;
+  if (t.tipo === "deposito")                       return 5;
+  return 6;
+}
+
+const ordenadas = [...txs].sort((a, b) => {
+  const porFecha = (a.fecha || "").localeCompare(b.fecha || "");
+  if (porFecha !== 0) return porFecha;
+  return prioridad(a) - prioridad(b);
+});
 
   for (const t of ordenadas) {
     if (t.tipo === "donacion") {
       rows.push({
         fecha: t.fecha,
-        descripcion: t.descripcion || (t.donTipo === "OM" ? "Donación obra mundial" : "Donación congregación"),
+        descripcion: t.descripcion || (t.donTipo === "OM" ? "Donación Obra Mundial" : "Donación Congregación"),
         ct: t.donTipo,
         recEnt: t.monto,
         recSal: "",
@@ -311,9 +322,10 @@ export function fmtMoney(n, locale = "es-MX", currency = "MXN") {
 
 /** Formatea para celdas de PDF (sin símbolo, con coma decimal opcional). */
 export function fmtNum(n) {
+  if (n === "" || n === undefined || n === null) return "";
   const v = Number(n);
-  if (!v) return "";
-  return v.toLocaleString("es-MX", {
+  if (isNaN(v)) return "";
+  return "$" + v.toLocaleString("es-MX", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   });

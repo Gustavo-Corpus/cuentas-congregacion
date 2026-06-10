@@ -29,7 +29,7 @@ export const firebaseConfig = {
  */
 export const CONGREGACION = {
   nombre: "Araucarias",
-  numero: "",                       // Número de congregación (opcional, para TO-62)
+  numero: "247809",                       // Número de congregación (opcional, para TO-62)
   ciudad: "Xalapa",
   provincia: "Veracruz",
   pais: "México",

@@ -15,7 +15,7 @@ export const firebaseConfig = {
 
 export const CONGREGACION = {
   nombre: "Araucarias",
-  numero: "",
+  numero: "247809",
   ciudad: "Xalapa",
   provincia: "Veracruz",
   pais: "México",

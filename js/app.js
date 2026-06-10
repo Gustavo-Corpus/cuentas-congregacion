@@ -555,7 +555,7 @@ function renderGastos() {
     items,
     [
       { t: "Fecha", render: (t) => fechaCorta(t.fecha) },
-      { t: "Concepto", render: (t) => t.concepto || "—" },
+      { t: "Concepto", render: (t) => (t.concepto || "—") + (t.esSalon ? ' <span class="chip">Salón RR</span>' : "") },
       {
         t: "Notas / etiquetas",
         render: (t) =>
@@ -677,11 +677,16 @@ function openTxModal(tipo, tx = null) {
       <label>Monto (MXN)</label><input type="number" step="0.01" min="0" id="m_monto" value="${tx?.monto ?? ""}" />
       <label>Descripción (opcional)</label><input type="text" id="m_desc" value="${tx?.descripcion ?? ""}" placeholder="Depósito en cuenta principal" />`;
   } else if (tipo === "gasto") {
-    body = `
-      <label>Fecha</label><input type="date" id="m_fecha" value="${fecha}" />
-      <label>Concepto</label><input type="text" id="m_concepto" value="${tx?.concepto ?? ""}" placeholder="Ej. Electricidad del Salón" />
-      <label>Monto (MXN)</label><input type="number" step="0.01" min="0" id="m_monto" value="${tx?.monto ?? ""}" />
-      <label>Notas / etiquetas (separadas por coma)</label><input type="text" id="m_notas" value="${tx?.notas ?? ""}" placeholder="mantenimiento, recibo #123" />`;
+  body = `
+    <label>Fecha</label><input type="date" id="m_fecha" value="${fecha}" />
+    <label>Concepto</label><input type="text" id="m_concepto" value="${tx?.concepto ?? ""}" placeholder="Ej. Electricidad del Salón" />
+    <label>Monto (MXN)</label><input type="number" step="0.01" min="0" id="m_monto" value="${tx?.monto ?? ""}" />
+    <label>Notas / etiquetas (separadas por coma)</label><input type="text" id="m_notas" value="${tx?.notas ?? ""}" placeholder="mantenimiento, recibo #123" />
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:4px">
+      <input type="checkbox" id="m_esSalon" ${tx?.esSalon ? "checked" : ""} />
+      Gasto de mantenimiento / funcionamiento del Salón del Reino
+    </label>
+    <div class="field-help">Si se activa, el monto se agrupa en "Gastos de funcionamiento" del S-30 y no aparece en el desglose de gastos individuales.</div>`;
   } else if (tipo === "cajachica") {
     body = `
       <label>Fecha</label><input type="date" id="m_fecha" value="${fecha}" />
@@ -721,7 +726,8 @@ function openTxModal(tipo, tx = null) {
       base.descripcion = $("#m_desc").value.trim();
     } else if (tipo === "gasto") {
       base.concepto = $("#m_concepto").value.trim();
-      base.notas = $("#m_notas").value.trim();
+      base.notas    = $("#m_notas").value.trim();
+      base.esSalon  = !!$("#m_esSalon").checked;
     } else if (tipo === "cajachica") {
       base.cajaSubtipo = $("#m_caja").value;
       base.descripcion = $("#m_desc").value.trim();
@@ -747,7 +753,7 @@ async function depositoAutomatico() {
     tipo: "deposito",
     fecha: hoy(),
     monto: pendiente,
-    descripcion: "Depósito de donaciones recogidas"
+    descripcion: "Depósito a la caja de efectivo"
   });
   toast(`Depósito de ${money(pendiente)} creado`, "ok");
 }
@@ -900,7 +906,7 @@ function renderHistorial() {
 /* ----------------------------- PDFs ----------------------------- */
 function setupPdfButtons() {
   $("#pdfS26").addEventListener("click", () => safePdf(() => generarS26(state.mes, state.txs, state.derived, CONGREGACION)));
-  $("#pdfS30").addEventListener("click", () => safePdf(() => generarS30(state.mes, state.derived, CONGREGACION)));
+  $("#pdfS30").addEventListener("click", () => safePdf(() => generarS30(state.mes, state.txs, state.derived, CONGREGACION)));
   $("#pdfTO62").addEventListener("click", () => safePdf(() => generarTO62(state.mes, state.derived, CONGREGACION)));
 }
 async function safePdf(fn) {

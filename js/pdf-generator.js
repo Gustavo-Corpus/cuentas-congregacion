@@ -3,7 +3,7 @@
  * Carga las plantillas originales desde /assets/templates y rellena los
  * AcroForms usando los mapeos de pdf-fields.js.
  */
-import { PDFDocument } from "https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/+esm";
+import { PDFDocument, StandardFonts } from "https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/+esm";
 import {
   s26RowFields,
   S26_HEADER,
@@ -27,6 +27,12 @@ async function loadTemplate(url) {
   if (!res.ok) throw new Error(`No se pudo cargar la plantilla: ${url}`);
   const bytes = await res.arrayBuffer();
   return PDFDocument.load(bytes);
+}
+
+async function guardarConFuente(pdf, form) {
+  const timesFont = await pdf.embedFont(StandardFonts.TimesRoman);
+  form.updateFieldAppearances(timesFont);
+  return pdf.save();
 }
 
 /** Asigna texto a un campo de forma segura (ignora si no existe). */
@@ -118,12 +124,12 @@ export async function generarS26(mes, txs, derived, cong) {
   }
   setText(form, S26_SUMMARY.fechaCompletado, finMes);
 
-  const bytes = await pdf.save();
+  const bytes = await guardarConFuente(pdf, form);
   descargar(bytes, `S-26_${mes.id}.pdf`);
 }
 
 /* ============================== S-30 ============================== */
-export async function generarS30(mes, derived, cong) {
+export async function generarS30(mes, txs, derived, cong) {
   const pdf = await loadTemplate(TEMPLATES.s30);
   const form = pdf.getForm();
   const s = derived.s30;
@@ -136,14 +142,47 @@ export async function generarS30(mes, derived, cong) {
   setText(form, S30.donOMCajas, fmtNum(s.c));
   setText(form, S30.c, fmtNum(s.c));
   setText(form, S30.d, fmtNum(s.d));
-  // Gastos
-  setText(form, S30.gastoFuncionamiento, fmtNum(s.eFuncionamiento));
-  setText(form, S30.resolucionOM, fmtNum(s.eResolucion));
-  if (s.cargosCuenta) {
-    setText(form, S30.gastoOtro1Desc, "Pago por cargos a la cuenta");
-    setText(form, S30.gastoOtro1, fmtNum(s.cargosCuenta));
-  }
-  setText(form, S30.e, fmtNum(s.e));
+
+// --- Gastos desglosados ---
+// 1. Gastos de salón (esSalon=true) + caja chica → se agrupan en gastoFuncionamiento
+const totalSalon = txs
+  .filter(t => t.tipo === "gasto" && t.esSalon)
+  .reduce((acc, t) => acc + (Number(t.monto) || 0), 0);
+
+const totalCajaSalida = txs
+  .filter(t => t.tipo === "cajachica" && t.cajaSubtipo === "salida")
+  .reduce((acc, t) => acc + (Number(t.monto) || 0), 0);
+
+const totalFuncionamiento = totalSalon + totalCajaSalida;
+if (totalFuncionamiento > 0)
+  setText(form, S30.gastoFuncionamiento, fmtNum(totalFuncionamiento));
+
+// 2. Gastos individuales (esSalon=false) → renglones con descripción
+const lineasGasto = txs
+  .filter(t => t.tipo === "gasto" && !t.esSalon)
+  .sort((a, b) => (a.fecha || "").localeCompare(b.fecha || ""))
+  .map(t => ({ desc: t.concepto || "Gasto de la congregación", monto: Number(t.monto) || 0 }));
+
+if (s.cargosCuenta)
+  lineasGasto.push({ desc: "Pago por cargos a la cuenta", monto: s.cargosCuenta });
+
+const slots = [
+  [S30.gastoOtro1Desc, S30.gastoOtro1],
+  [S30.gastoOtro2Desc, S30.gastoOtro2],
+  [S30.gastoOtro3Desc, S30.gastoOtro3],
+  [S30.gastoOtro4Desc, S30.gastoOtro4],
+  [S30.gastoOtro5Desc, S30.gastoOtro5],
+];
+
+lineasGasto.slice(0, 5).forEach((g, i) => {
+  setText(form, slots[i][0], g.desc);
+  setText(form, slots[i][1], fmtNum(g.monto));
+});
+
+// Resolución OM y total sin cambio
+setText(form, S30.resolucionOM, fmtNum(s.eResolucion));
+setText(form, S30.e, fmtNum(s.e));
+
   // Otros desembolsos
   setText(form, S30.donOMEnviadas, fmtNum(s.f));
   setText(form, S30.f, fmtNum(s.f));
@@ -163,7 +202,7 @@ export async function generarS30(mes, derived, cong) {
   setText(form, S30.anuncioE, fmtNum(s.e));
   setText(form, S30.anuncioI, fmtNum(s.i));
 
-  const bytes = await pdf.save();
+  const bytes = await guardarConFuente(pdf, form);
   descargar(bytes, `S-30_${mes.id}.pdf`);
 }
 
@@ -195,7 +234,7 @@ export async function generarTO62(mes, derived, cong) {
   setText(form, TO62.totalFondos, fmtNum(t.totalFondosEnviados));
   setText(form, TO62.referencia, t.referencia);
   if (t.reembolso) setText(form, TO62.reembolso, fmtNum(t.reembolso));
-  setText(form, TO62.fechaTransaccion, formatFechaCorta(t.fechaTransaccion));
+  setText(form, TO62.fechaTransaccion, formatFechaMedia(t.fechaTransaccion));
   if (t.confirmacion) {
     const partes = String(t.confirmacion).split("/");
     setText(form, TO62.confirmacion1, partes[0] || "");
@@ -204,19 +243,27 @@ export async function generarTO62(mes, derived, cong) {
   setText(form, TO62.personaLlena, t.personaLlena || cong.siervoCuentas);
   setText(form, TO62.personaAutoriza, t.personaAutoriza);
 
-  const bytes = await pdf.save();
+  const bytes = await guardarConFuente(pdf, form);
   descargar(bytes, `TO-62_${mes.id}.pdf`);
 }
 
 /* ----------------------------- helpers ----------------------------- */
 function formatFechaCorta(iso) {
   if (!iso) return "";
-  const [y, m, d] = iso.split("-");
+  const [, , d] = iso.split("-");
   if (!d) return iso;
-  return `${d}/${m}/${y}`;
+  return String(parseInt(d, 10));
 }
 
 function ultimoDiaMes(year, month) {
   const d = new Date(year, month, 0).getDate();
-  return `${String(d).padStart(2, "0")}/${String(month).padStart(2, "0")}/${year}`;
+  return `${d} de ${MESES_ES[month - 1]} del ${year}`;
+}
+
+function formatFechaMedia(iso) {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-");
+  if (!d) return iso;
+  const mes = MESES_ES[parseInt(m, 10) - 1].slice(0, 3);
+  return `${parseInt(d, 10)}-${mes}-${y}`;
 }
