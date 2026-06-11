@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/styles.css" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 </head>
 <body>
   <div class="app-shell">
@@ -22,14 +23,14 @@
         </div>
       </div>
       <nav class="nav" id="nav">
-        <button data-view="resumen" class="active"><span class="ic">📊</span> Resumen</button>
-        <button data-view="donaciones"><span class="ic">💛</span> Donaciones</button>
-        <button data-view="depositos"><span class="ic">🏦</span> Depósitos</button>
-        <button data-view="gastos"><span class="ic">🧾</span> Gastos</button>
-        <button data-view="caja"><span class="ic">🪙</span> Caja chica</button>
-        <button data-view="traspaso"><span class="ic">📤</span> Traspaso (TO-62)</button>
-        <button data-view="formularios"><span class="ic">📄</span> Formularios PDF</button>
-        <button data-view="historial"><span class="ic">🗂️</span> Historial</button>
+        <button data-view="resumen" class="active"><span class="ic"><i data-lucide="bar-chart-2"></i></span> Resumen</button>
+        <button data-view="donaciones"><span class="ic"><i data-lucide="heart-handshake"></i></span> Donaciones</button>
+        <button data-view="depositos"><span class="ic"><i data-lucide="landmark"></i></span> Depósitos</button>
+        <button data-view="gastos"><span class="ic"><i data-lucide="receipt"></i></span> Gastos</button>
+        <button data-view="caja"><span class="ic"><i data-lucide="wallet"></i></span> Caja chica</button>
+        <button data-view="traspaso"><span class="ic"><i data-lucide="send"></i></span> Traspaso (TO-62)</button>
+        <button data-view="formularios"><span class="ic"><i data-lucide="file-text"></i></span> Formularios PDF</button>
+        <button data-view="historial"><span class="ic"><i data-lucide="archive"></i></span> Historial</button>
       </nav>
       <div style="border-top:1px solid var(--border); padding-top:14px; margin-top:10px;">
         <div class="small muted" id="userEmail" style="margin-bottom:10px; word-break:break-all;"></div>
@@ -277,8 +278,7 @@
   <div class="toast" id="toast"></div>
   
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script type="module" src="js/app.js"></script>
-
+  <script>lucide.createIcons();</script>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>

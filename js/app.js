@@ -624,6 +624,14 @@ function openModal(title, bodyHtml, onSave) {
       saveBtn.disabled = false;
     }
   };
+  // Listener para toggle card del gasto
+  setTimeout(() => {
+    const cb = document.getElementById("m_esSalon");
+    const card = document.getElementById("m_esSalonCard");
+    if (cb && card) {
+      cb.addEventListener("change", () => card.classList.toggle("active", cb.checked));
+    }
+  }, 0);
   modal.classList.add("open");
 }
 
@@ -682,10 +690,21 @@ function openTxModal(tipo, tx = null) {
     <label>Concepto</label><input type="text" id="m_concepto" value="${tx?.concepto ?? ""}" placeholder="Ej. Electricidad del Salón" />
     <label>Monto (MXN)</label><input type="number" step="0.01" min="0" id="m_monto" value="${tx?.monto ?? ""}" />
     <label>Notas / etiquetas (separadas por coma)</label><input type="text" id="m_notas" value="${tx?.notas ?? ""}" placeholder="mantenimiento, recibo #123" />
-    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:4px">
-      <input type="checkbox" id="m_esSalon" ${tx?.esSalon ? "checked" : ""} />
-      Gasto de mantenimiento / funcionamiento del Salón del Reino
+    <label class="toggle-card ${tx?.esSalon ? "active" : ""}" id="m_esSalonCard" for="m_esSalon">
+      <div class="toggle-card-text">
+        <strong>🏛️ Gasto de Salón del Reino</strong>
+        <span>Se agrupa en "Gastos de funcionamiento" del S-30 y no aparece en el desglose individual.</span>
+      </div>
+      <div class="toggle-switch">
+        <input type="checkbox" id="m_esSalon" ${tx?.esSalon ? "checked" : ""} />
+        <div class="toggle-track"></div>
+      </div>
     </label>
+    <script>
+      document.getElementById('m_esSalon').addEventListener('change', function() {
+        document.getElementById('m_esSalonCard').classList.toggle('active', this.checked);
+      });
+    </script>
     <div class="field-help">Si se activa, el monto se agrupa en "Gastos de funcionamiento" del S-30 y no aparece en el desglose de gastos individuales.</div>`;
   } else if (tipo === "cajachica") {
     body = `
