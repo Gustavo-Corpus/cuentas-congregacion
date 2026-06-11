@@ -540,7 +540,7 @@ function renderDepositos() {
     items,
     [
       { t: "Fecha", render: (t) => fechaCorta(t.fecha) },
-      { t: "Descripción", render: (t) => t.descripcion || "Depósito en cuenta principal" },
+      { t: "Descripción", render: (t) => t.descripcion || "Depósito a la caja de efectivo" },
       { t: "Monto", num: true, render: (t) => money(t.monto) }
     ],
     "Sin depósitos registrados este mes."
@@ -683,7 +683,7 @@ function openTxModal(tipo, tx = null) {
     body = `
       <label>Fecha</label><input type="date" id="m_fecha" value="${fecha}" />
       <label>Monto (MXN)</label><input type="number" step="0.01" min="0" id="m_monto" value="${tx?.monto ?? ""}" />
-      <label>Descripción (opcional)</label><input type="text" id="m_desc" value="${tx?.descripcion ?? ""}" placeholder="Depósito en cuenta principal" />`;
+      <label>Descripción (opcional)</label><input type="text" id="m_desc" value="${tx?.descripcion ?? ""}" placeholder="Depósito a la caja de efectivo" />`;
   } else if (tipo === "gasto") {
   body = `
     <label>Fecha</label><input type="date" id="m_fecha" value="${fecha}" />

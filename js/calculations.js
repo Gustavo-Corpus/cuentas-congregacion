@@ -244,7 +244,7 @@ const ordenadas = [...txs].sort((a, b) => {
     } else if (t.tipo === "deposito") {
       rows.push({
         fecha: t.fecha,
-        descripcion: t.descripcion || "Depósito en cuenta principal",
+        descripcion: t.descripcion || "Depósito a la caja de efectivo",
         ct: "D",
         recEnt: "",
         recSal: t.monto,
